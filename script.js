@@ -26,8 +26,12 @@ var quizController = (function () {
   if (questionLocalStorage.getQuestionCollection() === null) {
     questionLocalStorage.setQuestionCollection([]);
   }
+  var quizProgress = {
+    questionIndex: 0,
+  };
 
   return {
+    getQuizProgress: quizProgress,
     getQuestionLocalStorage: questionLocalStorage,
 
     addQuestionLocalStorage: function (newQuestText, opts) {
@@ -122,6 +126,10 @@ var UIController = (function () {
     ),
     questUpdateBtn: document.getElementById("question-update-btn"),
     questDeleteBtn: document.getElementById("question-delete-btn"),
+    questsClearBtn: document.getElementById("questions-clear-btn"),
+    //***********Quiz Section*********************
+    askedQuestText: document.getElementById("asked-question-text"),
+    quizOptionsWrapper: document.querySelector(".quiz-options-wrapper"),
   };
 
   return {
@@ -188,7 +196,12 @@ var UIController = (function () {
         );
       }
     },
-    editQuestList: function (event, storageQuestList, addInpsDynFn) {
+    editQuestList: function (
+      event,
+      storageQuestList,
+      addInpsDynFn,
+      updateQuestListFn
+    ) {
       var getId, getStorageQuestList, foundItem, placeInArr, optionHTML;
 
       if ("question-".indexOf(event.target.id)) {
@@ -223,8 +236,128 @@ var UIController = (function () {
         domItems.questUpdateBtn.style.visibility = "visible";
         domItems.questDeleteBtn.style.visibility = "visible";
         domItems.questInsertBtn.style.visibility = "hidden";
+        domItems.questsClearBtn.style.pointerEvents = "none";
 
         addInpsDynFn();
+
+        var backDefaultView = function () {
+          var updatedOptions;
+
+          domItems.newQuestionText.value = "";
+          updatedOptions = document.querySelectorAll(".admin-option");
+
+          for (var i = 0; i < updatedOptions.length; i++) {
+            updatedOptions[i].value = "";
+            updatedOptions[i].previousElementSibling.checked = false;
+          }
+
+          domItems.questUpdateBtn.style.visibility = "hidden";
+          domItems.questDeleteBtn.style.visibility = "hidden";
+          domItems.questInsertBtn.style.visibility = "visible";
+          domItems.questsClearBtn.style.pointerEvents = "";
+
+          updateQuestListFn(storageQuestList);
+        };
+
+        var updateQuestion = function () {
+          var newOptions, optionEls;
+
+          newOptions = [];
+
+          optionEls = document.querySelectorAll(".admin-option");
+
+          foundItem.questionText = domItems.newQuestionText.value;
+          foundItem.correctAnswer = "";
+
+          for (var i = 0; i < optionEls.length; i++) {
+            if (optionEls[i].value !== "") {
+              newOptions.push(optionEls[i].value);
+              if (optionEls[i].previousElementSibling.checked) {
+                foundItem.correctAnswer = optionEls[i].value;
+              }
+            }
+          }
+
+          foundItem.options = newOptions;
+          if (foundItem.questionText !== "") {
+            if (foundItem.options.length > 1) {
+              if (foundItem.correctAnswer !== "") {
+                getStorageQuestList.splice(placeInArr, 1, foundItem);
+
+                storageQuestList.setQuestionCollection(getStorageQuestList);
+
+                backDefaultView();
+              } else {
+                alert("You forgot to check a correct answer");
+              }
+            } else {
+              alert("You must insert at least two options");
+            }
+          } else {
+            alert("Please insert a question");
+          }
+        };
+
+        domItems.questUpdateBtn.onclick = updateQuestion;
+
+        var deleteQuestion = function () {
+          getStorageQuestList.splice(placeInArr, 1);
+          storageQuestList.setQuestionCollection(getStorageQuestList);
+
+          backDefaultView();
+        };
+        domItems.questDeleteBtn.onclick = deleteQuestion;
+      }
+    },
+    clearQuestList: function (storageQuestList) {
+      if (storageQuestList.getQuestionCollection() !== null) {
+        if (storageQuestList.getQuestionCollection().length > 0) {
+          var conf = confirm("Warning: You will delete everything?");
+          if (conf) {
+            storageQuestList.removeQuestionCollection();
+            domItems.insertedQuestionsWrapper.innerHTML = "";
+          }
+        }
+      }
+    },
+
+    displayQuestion: function (storageQuestList, progress) {
+      var newOptionHTML, charachterArr;
+
+      charachterArr = ["A", "B", "C", "D", "E", "F"];
+
+      if (storageQuestList.getQuestionCollection().length > 0) {
+        domItems.askedQuestText.textContent = storageQuestList.getQuestionCollection()[
+          progress.questionIndex
+        ].questionText;
+
+        domItems.quizOptionsWrapper.innerHTML = "";
+        for (
+          var i = 0;
+          i <
+          storageQuestList.getQuestionCollection()[progress.questionIndex]
+            .options.length;
+          i++
+        ) {
+          newOptionHTML =
+            ' <div class="choice-' +
+            i +
+            '"><span class="choice-' +
+            i +
+            '">' +
+            charachterArr[i] +
+            '</span><p  class="choice-' +
+            i +
+            '">' +
+            storageQuestList.getQuestionCollection()[progress.questionIndex]
+              .options[i] +
+            "</p></div>";
+
+          domItems.quizOptionsWrapper.insertAdjacentHTML(
+            "beforeend",
+            newOptionHTML
+          );
+        }
       }
     },
   };
@@ -260,8 +393,18 @@ var controller = (function (quizCtrl, UICtrl) {
       UICtrl.editQuestList(
         e,
         quizCtrl.getQuestionLocalStorage,
-        UICtrl.addInputsDynamically
+        UICtrl.addInputsDynamically,
+        UICtrl.createQuestionList
       );
     }
+  );
+
+  selectedDomItems.questsClearBtn.addEventListener("click", function () {
+    UICtrl.clearQuestList(quizCtrl.getQuestionLocalStorage);
+  });
+
+  UICtrl.displayQuestion(
+    quizCtrl.getQuestionLocalStorage,
+    quizCtrl.getQuizProgress
   );
 })(quizController, UIController);
