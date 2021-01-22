@@ -107,6 +107,23 @@ var quizController = (function () {
         return false;
       }
     },
+    checkAnswer: function (ans) {
+      if (
+        questionLocalStorage.getQuestionCollection()[quizProgress.questionIndex]
+          .correctAnswer === ans.textContent
+      ) {
+        return true;
+      } else {
+        return false;
+      }
+    },
+
+    isFinished: function () {
+      return (
+        quizProgress.questionIndex + 1 ===
+        questionLocalStorage.getQuestionCollection().length
+      );
+    },
   };
 })();
 
@@ -130,6 +147,13 @@ var UIController = (function () {
     //***********Quiz Section*********************
     askedQuestText: document.getElementById("asked-question-text"),
     quizOptionsWrapper: document.querySelector(".quiz-options-wrapper"),
+    progressBar: document.querySelector("progress"),
+    progressPar: document.getElementById("progress"),
+    instAnsContainer: document.querySelector(".instant-answer-container"),
+    instAnswerText: document.getElementById("instant-answer-text"),
+    instAnsDiv: document.getElementById("instant-answer-wrapper"),
+    emotionIcon: document.getElementById("emotion"),
+    nextQuestBtn: document.getElementById("next-question-btn"),
   };
 
   return {
@@ -360,6 +384,41 @@ var UIController = (function () {
         }
       }
     },
+    displayProgress: function (storageQuestList, progress) {
+      domItems.progressBar.max = storageQuestList.getQuestionCollection().length;
+      domItems.progressBar.value = progress.questionIndex + 1;
+      domItems.progressPar.textContent =
+        progress.questionIndex +
+        1 +
+        "/" +
+        storageQuestList.getQuestionCollection().length;
+    },
+    newDesign: function (ansResult, selectedAnswer) {
+      var twoOptions, index;
+      index = 0;
+      if (ansResult) {
+        index = 1;
+      }
+      twoOptions = {
+        instAnswerText: ["This is wrong", "This is correct"],
+        instAnswerClass: ["red", "green"],
+        emotionType: ["images/sad.png", "images/happy.png"],
+        optionSpanBg: ["rgba(200, 0, 0, .7)", "rgba(0, 250, 0, .7)"],
+      };
+
+      domItems.quizOptionsWrapper.style.cssText =
+        "opacity: 0.6; pointer-events: none;";
+      domItems.instAnsContainer.style.opacity = "1";
+      domItems.instAnswerText.textContent = twoOptions.instAnswerText[index];
+      domItems.instAnsDiv.className = twoOptions.instAnswerClass[index];
+      domItems.emotionIcon.setAttribute("src", twoOptions.emotionType[index]);
+      selectedAnswer.previousElementSibling.style.backgroundColor =
+        twoOptions.optionSpanBg[index];
+    },
+    resetDesign: function () {
+      domItems.quizOptionsWrapper.style.cssText = "";
+      domItems.instAnsContainer.style.opacity = "0";
+    },
   };
 })();
 
@@ -407,4 +466,53 @@ var controller = (function (quizCtrl, UICtrl) {
     quizCtrl.getQuestionLocalStorage,
     quizCtrl.getQuizProgress
   );
+
+  UICtrl.displayProgress(
+    quizCtrl.getQuestionLocalStorage,
+    quizCtrl.getQuizProgress
+  );
+
+  selectedDomItems.quizOptionsWrapper.addEventListener("click", function (e) {
+    var updatedOptionsDiv = selectedDomItems.quizOptionsWrapper.querySelectorAll(
+      "div"
+    );
+    for (var i = 0; i < updatedOptionsDiv.length; i++) {
+      if (e.target.className === "choice-" + i) {
+        var answer = document.querySelector(
+          ".quiz-options-wrapper div p." + e.target.className
+        );
+        var answerResult = quizCtrl.checkAnswer(answer);
+
+        UICtrl.newDesign(answerResult, answer);
+
+        if (quizCtrl.isFinished()) {
+          selectedDomItems.nextQuestBtn.textContent = "Finish";
+        }
+
+        var nextQuestion = function (questData, progress) {
+          if (quizCtrl.isFinished()) {
+            // finished quiz
+          } else {
+            UICtrl.resetDesign();
+            quizCtrl.getQuizProgress.questionIndex++;
+            UICtrl.displayQuestion(
+              quizCtrl.getQuestionLocalStorage,
+              quizCtrl.getQuizProgress
+            );
+            UICtrl.displayProgress(
+              quizCtrl.getQuestionLocalStorage,
+              quizCtrl.getQuizProgress
+            );
+          }
+        };
+
+        selectedDomItems.nextQuestBtn.onclick = function () {
+          nextQuestion(
+            quizCtrl.getQuestionLocalStorage,
+            quizCtrl.getQuizProgress
+          );
+        };
+      }
+    }
+  });
 })(quizController, UIController);
