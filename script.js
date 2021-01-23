@@ -204,6 +204,7 @@ var UIController = (function () {
     questDeleteBtn: document.getElementById("question-delete-btn"),
     questsClearBtn: document.getElementById("questions-clear-btn"),
     resultsListWrapper: document.querySelector(".results-list-wrapper"),
+    clearResultsBtn: document.getElementById("results-clear-btn"),
     //***********Quiz Section*********************
     quizSection: document.querySelector(".quiz-container"),
     askedQuestText: document.getElementById("asked-question-text"),
@@ -574,6 +575,19 @@ var UIController = (function () {
         }
       }
     },
+
+    clearResultList: function (userData) {
+      var conf;
+      if (userData.getPersonData() != null) {
+        if (userData.getPersonData().length > 0) {
+          conf = confirm("Warning: You will clear all the lists");
+          if (conf) {
+            userData.removePersonData();
+            domItems.resultsListWrapper.innerHTML = "";
+          }
+        }
+      }
+    },
   };
 })();
 
@@ -700,5 +714,9 @@ var controller = (function (quizCtrl, UICtrl) {
     UICtrl.deleteResult(e, quizCtrl.getPersonLocalStorage);
 
     UICtrl.addResultOnPanel(quizCtrl.getPersonLocalStorage);
+  });
+
+  selectedDomItems.clearResultsBtn.addEventListener("click", function () {
+    UICtrl.clearResultList(quizCtrl.getPersonLocalStorage);
   });
 })(quizController, UIController);
