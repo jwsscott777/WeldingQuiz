@@ -527,8 +527,9 @@ var UIController = (function () {
         currPerson.fullname[0] +
         " " +
         currPerson.fullname[1] +
-        ", your score is " +
-        currPerson.score;
+        ", your just got " +
+        currPerson.score +
+        ", out of 50 ";
 
       domItems.quizSection.style.display = "none";
       domItems.finalResultSection.style.display = "block";
